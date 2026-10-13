@@ -9,6 +9,7 @@ from torch.utils.data import Dataset
 from src.text_encoder import CTCTextEncoder
 
 logger = logging.getLogger(__name__)
+SPECTROGRAM_EPS = 1e-6
 
 
 class BaseDataset(Dataset):
@@ -84,20 +85,16 @@ class BaseDataset(Dataset):
         text = data_dict["text"]
         text_encoded = self.text_encoder.encode(text)
 
-        spectrogram = self.get_spectrogram(audio)
-
         instance_data = {
             "audio": audio,
-            "spectrogram": spectrogram,
             "text": text,
             "text_encoded": text_encoded,
             "audio_path": audio_path,
         }
 
-        # TODO think of how to apply wave augs before calculating spectrogram
-        # Note: you may want to preserve both audio in time domain and
-        # in time-frequency domain for logging
         instance_data = self.preprocess_data(instance_data)
+        spectrogram = self.get_spectrogram(instance_data["audio"])
+        instance_data["spectrogram"] = spectrogram
 
         return instance_data
 
@@ -123,9 +120,11 @@ class BaseDataset(Dataset):
         Args:
             audio (Tensor): original audio.
         Returns:
-            spectrogram (Tensor): spectrogram for the audio.
+            spectrogram (Tensor): log spectrogram for the audio.
         """
-        return self.instance_transforms["get_spectrogram"](audio)
+        return torch.log(
+            self.instance_transforms["get_spectrogram"](audio) + SPECTROGRAM_EPS
+        )
 
     def preprocess_data(self, instance_data):
         """

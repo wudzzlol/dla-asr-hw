@@ -1,5 +1,11 @@
+from math import log
+
 import torch
 from torch.nn.utils.rnn import pad_sequence
+
+from src.datasets.base_dataset import SPECTROGRAM_EPS
+
+LOG_SPECTROGRAM_EPS = log(SPECTROGRAM_EPS)
 
 
 def collate_fn(dataset_items: list[dict]):
@@ -32,7 +38,9 @@ def collate_fn(dataset_items: list[dict]):
         text_encoded_length.append(dict_item["text_encoded"].shape[-1])
 
     audio_out = pad_sequence(audio, batch_first=True)
-    spectrogram_out = pad_sequence(spectrogram, batch_first=True).transpose(1, 2)
+    spectrogram_out = pad_sequence(
+        spectrogram, batch_first=True, padding_value=LOG_SPECTROGRAM_EPS
+    ).transpose(1, 2)
     text_encoded_out = pad_sequence(text_encoded, batch_first=True)
     text_encoded_length = torch.tensor(text_encoded_length, dtype=torch.long)
     spectrogram_length = torch.tensor(spectrogram_length, dtype=torch.long)
