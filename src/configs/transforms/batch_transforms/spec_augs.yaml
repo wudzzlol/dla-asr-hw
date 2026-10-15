@@ -1,0 +1,6 @@
+train:
+  spectrogram:
+    _target_: src.transforms.spec_augs.SpectrogramAugmentations
+    freq_mask_param: 20
+    time_mask_param: 40
+inference: null
