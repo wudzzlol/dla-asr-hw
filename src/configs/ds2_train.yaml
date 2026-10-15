@@ -18,6 +18,7 @@ lr_scheduler:
   anneal_strategy: cos
 loss_function:
   _target_: src.loss.CTCLossWrapper
+  zero_infinity: True
 text_encoder:
   _target_: src.text_encoder.CTCTextEncoder
 writer:
@@ -37,3 +38,4 @@ trainer:
   save_dir: "saved"
   seed: 1
   max_grad_norm: 10
+  amp: True

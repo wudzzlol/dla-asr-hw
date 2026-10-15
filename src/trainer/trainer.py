@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
+import torch
 
 from src.logger.utils import plot_spectrogram
 from src.metrics.tracker import MetricTracker
@@ -40,16 +41,30 @@ class Trainer(BaseTrainer):
             metric_funcs = self.metrics["train"]
             self.optimizer.zero_grad()
 
-        outputs = self.model(**batch)
-        batch.update(outputs)
+        if not hasattr(self, "scaler"):
+            self.scaler = torch.cuda.amp.GradScaler(
+                enabled=self.cfg_trainer.get("amp", False)
+            )
 
-        all_losses = self.criterion(**batch)
-        batch.update(all_losses)
+        with torch.autocast(
+            "cuda", dtype=torch.float16, enabled=self.cfg_trainer.get("amp", False)
+        ):
+            outputs = self.model(
+                spectrogram=batch["spectrogram"],
+                spectrogram_length=batch["spectrogram_length"],
+            )
+            outputs["log_probs_length"] = outputs["log_probs_length"].cpu()
+            batch.update(outputs)
+
+            all_losses = self.criterion(**batch)
+            batch.update(all_losses)
 
         if self.is_train:
-            batch["loss"].backward()  # sum of all losses is always called loss
+            self.scaler.scale(batch["loss"]).backward()
+            self.scaler.unscale_(self.optimizer)
             self._clip_grad_norm()
-            self.optimizer.step()
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
 
