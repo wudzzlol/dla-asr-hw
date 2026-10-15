@@ -1,0 +1,9 @@
+_target_: src.model.DeepSpeech
+n_feats: 128
+conv_channels: 32
+conv_kernel_sizes: [[41, 11], [21, 11]]
+conv_paddings: [[20, 5], [10, 5]]
+conv_strides: [[2, 2], [2, 1]]
+rnn_hidden: 256
+rnn_layers: 3
+rnn_batch_norm: true
