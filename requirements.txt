@@ -16,6 +16,8 @@ hydra-core
 scipy
 sentencepiece
 editdistance
+pyctcdecode
+kenlm
 
 black
 isort

@@ -7,11 +7,16 @@ defaults:
   - _self_
 text_encoder:
   _target_: src.text_encoder.CTCTextEncoder
+  bpe_path: null
+  lm_model_path: null
+  vocab_path: null
+  alpha: 0.5
+  beta: 1.0
 inferencer:
   device_tensors: ["spectrogram", "text_encoded"]
   device: auto
   save_path: "predictions"
   seed: 1
   from_pretrained: "saved/ds2_full/model_best.pth"
-  decode_method: "beam" #"argmax" or "beam"
+  decode_method: "beam" #"argmax", "beam" or "lm"
   beam_size: 10

@@ -145,10 +145,16 @@ class Inferencer(BaseTrainer):
             if method == "argmax":
                 preds = torch.argmax(log_probs.cpu(), dim=-1)
                 preds = self.text_encoder.ctc_decode(preds)
-            else:
+            elif method == "beam":
                 preds = self.text_encoder.beam_search(
                     torch.exp(log_probs.cpu()), self.cfg_trainer.get("beam_size", 10)
                 )
+            elif method == "lm":
+                preds = self.text_encoder.ctc_lm_decode(
+                    log_probs.cpu(), self.cfg_trainer.get("beam_size", 10)
+                )
+            else:
+                raise ValueError(f"No method named {method}")
 
             output_id = Path(batch["audio_path"][i]).stem
 

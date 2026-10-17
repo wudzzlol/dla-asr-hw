@@ -4,6 +4,7 @@ from string import ascii_lowercase
 
 import sentencepiece as spm
 import torch
+from pyctcdecode import build_ctcdecoder
 
 # TODO add CTC decode
 # TODO add BPE, LM, Beam Search support
@@ -16,7 +17,16 @@ class CTCTextEncoder:
     EMPTY_TOK = ""
     BPE_SPACE = "\u2581"
 
-    def __init__(self, alphabet=None, bpe_path=None, **kwargs):
+    def __init__(
+        self,
+        alphabet=None,
+        bpe_path=None,
+        lm_model_path=None,
+        vocab_path=None,
+        alpha=0.5,
+        beta=1.0,
+        **kwargs,
+    ):
         """
         Args:
             alphabet (list): alphabet for language. If None, it will be
@@ -39,6 +49,19 @@ class CTCTextEncoder:
 
         self.ind2char = dict(enumerate(self.vocab))
         self.char2ind = {v: k for k, v in self.ind2char.items()}
+        if lm_model_path is None:
+            self.lm_decoder = None
+        else:
+            with open(vocab_path, encoding="utf-8") as f:
+                words = f.read().split()
+
+            self.lm_decoder = build_ctcdecoder(
+                labels=self.vocab,
+                kenlm_model_path=lm_model_path,
+                unigrams=words,
+                alpha=alpha,
+                beta=beta,
+            )
 
     def __len__(self):
         return len(self.vocab)
@@ -135,6 +158,15 @@ class CTCTextEncoder:
             .replace(self.BPE_SPACE, " ")
             .strip()
         )
+
+    def ctc_lm_decode(self, log_probs, beam_size):
+        if self.lm_decoder is None:
+            raise ValueError(
+                "LM is not configured: set text_encoder.lm_model_path and text_encoder.vocab_path"
+            )
+        log_probs = log_probs.detach().cpu().numpy()
+        text = self.lm_decoder.decode(logits=log_probs, beam_width=beam_size)
+        return text
 
     @staticmethod
     def normalize_text(text: str):

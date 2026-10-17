@@ -50,3 +50,25 @@ class BeamSearchWERMetric(BaseMetric):
             target_text = self.text_encoder.normalize_text(target_text)
             wers.append(calc_wer(target_text, pred_text))
         return sum(wers) / len(wers)
+
+
+class LMWERMetric(BaseMetric):
+    def __init__(self, text_encoder, beam_size, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.text_encoder = text_encoder
+        self.beam_size = beam_size
+
+    def __call__(
+        self, log_probs: Tensor, log_probs_length: Tensor, text: List[str], **kwargs
+    ):
+        wers = []
+        predictions = []
+        lengths = log_probs_length.detach().cpu()
+        for prob, length in zip(log_probs, lengths):
+            predictions.append(
+                self.text_encoder.ctc_lm_decode(prob[: int(length)], self.beam_size)
+            )
+        for target_text, pred_text in zip(text, predictions):
+            target_text = self.text_encoder.normalize_text(target_text)
+            wers.append(calc_wer(target_text, pred_text))
+        return sum(wers) / len(wers)
