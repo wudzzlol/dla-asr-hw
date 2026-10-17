@@ -1,0 +1,9 @@
+defaults:
+  - ds2_train
+  - _self_
+
+text_encoder:
+  bpe_path: "src/text_encoder/bpe.model"
+
+writer:
+  run_name: "ds2_bpe"

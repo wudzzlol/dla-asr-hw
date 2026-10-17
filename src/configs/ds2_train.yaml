@@ -26,14 +26,14 @@ writer:
   run_name: "ds2_full"
 trainer:
   log_step: 100
-  n_epochs: 40
+  n_epochs: 65
   epoch_len: 1000
   device_tensors: ["spectrogram", "text_encoded"]
   resume_from: null
   device: auto
   override: False
   monitor: "min val_WER_(Argmax)"
-  save_period: 1
+  save_period: 5
   early_stop: ${trainer.n_epochs}
   save_dir: "saved"
   seed: 1
