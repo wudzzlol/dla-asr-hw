@@ -1,4 +1,5 @@
 import re
+from collections import defaultdict
 from string import ascii_lowercase
 
 import sentencepiece as spm
@@ -91,6 +92,49 @@ class CTCTextEncoder:
         if cur != self.char2ind[self.EMPTY_TOK]:
             res.append(self.ind2char[cur])
         return "".join(res).replace(self.BPE_SPACE, " ").strip()
+
+    def beam_search(self, probs, beam_size):
+        bs_probs = {(): [1, 0]}  # symb: [blank, non blank]
+        probs = probs.tolist()
+        for i in range(len(probs)):
+            tmp_hyps = defaultdict(lambda: [0.0, 0.0])
+            need_to_check = []
+            for tok_num in range(len(probs[i])):
+                if probs[i][tok_num] >= 1e-3:
+                    need_to_check.append(tok_num)
+            for tok_num in need_to_check:
+                for key in bs_probs.keys():
+                    p_b_cur, p_nb_cur = bs_probs[key]
+                    if self.ind2char[tok_num] == self.EMPTY_TOK:
+                        tmp_hyps[key][0] += (p_b_cur + p_nb_cur) * probs[i][tok_num]
+                    elif key and key[-1] == tok_num:
+                        tmp_hyps[key][1] += p_nb_cur * probs[i][tok_num]
+                        tmp_hyps[key + (tok_num,)][1] += p_b_cur * probs[i][tok_num]
+                    else:
+                        tmp_hyps[key + (tok_num,)][1] += (p_b_cur + p_nb_cur) * probs[
+                            i
+                        ][tok_num]
+            tmp_hyps = dict(
+                sorted(tmp_hyps.items(), key=lambda x: -sum(x[1]))[:beam_size]
+            )
+            sm = 0.0
+            for hyp, hyp_probs in tmp_hyps.items():
+                sm += hyp_probs[0] + hyp_probs[1]
+            for hyp in tmp_hyps.keys():
+                tmp_hyps[hyp][0] /= sm
+                tmp_hyps[hyp][1] /= sm
+            bs_probs = tmp_hyps
+        best_hyp = ()
+        best_sm = -1
+        for hyp, hyp_probs in bs_probs.items():
+            if sum(hyp_probs) > best_sm:
+                best_sm = sum(hyp_probs)
+                best_hyp = hyp
+        return (
+            "".join([self.ind2char[i] for i in best_hyp])
+            .replace(self.BPE_SPACE, " ")
+            .strip()
+        )
 
     @staticmethod
     def normalize_text(text: str):

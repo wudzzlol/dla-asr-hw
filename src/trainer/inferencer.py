@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import torch
 from tqdm.auto import tqdm
 
@@ -133,29 +135,28 @@ class Inferencer(BaseTrainer):
             for met in self.metrics["inference"]:
                 metrics.update(met.name, met(**batch))
 
-        # Some saving logic. This is an example
-        # Use if you need to save predictions on disk
-
-        batch_size = batch["logits"].shape[0]
-        current_id = batch_idx * batch_size
+        batch_size = batch["log_probs"].shape[0]
+        method = self.cfg_trainer.get("decode_method", "argmax")
 
         for i in range(batch_size):
-            # clone because of
-            # https://github.com/pytorch/pytorch/issues/1995
-            logits = batch["logits"][i].clone()
-            label = batch["labels"][i].clone()
-            pred_label = logits.argmax(dim=-1)
+            log_probs = batch["log_probs"][i][
+                : int(batch["log_probs_length"][i])
+            ].clone()
+            if method == "argmax":
+                preds = torch.argmax(log_probs.cpu(), dim=-1)
+                preds = self.text_encoder.ctc_decode(preds)
+            else:
+                preds = self.text_encoder.beam_search(
+                    torch.exp(log_probs.cpu()), self.cfg_trainer.get("beam_size", 10)
+                )
 
-            output_id = current_id + i
-
-            output = {
-                "pred_label": pred_label,
-                "label": label,
-            }
+            output_id = Path(batch["audio_path"][i]).stem
 
             if self.save_path is not None:
                 # you can use safetensors or other lib here
-                torch.save(output, self.save_path / part / f"output_{output_id}.pth")
+                (self.save_path / part / f"{output_id}.txt").write_text(
+                    preds, encoding="utf-8"
+                )
 
         return batch
 
