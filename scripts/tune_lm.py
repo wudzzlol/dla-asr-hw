@@ -33,7 +33,7 @@ def main():
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    ckpt = torch.load(args.checkpoint, map_location="cpu")
+    ckpt = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
     text_encoder = instantiate(ckpt["config"].text_encoder)
     model = instantiate(ckpt["config"].model, n_tokens=len(text_encoder))
     model.load_state_dict(ckpt["state_dict"])
