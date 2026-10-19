@@ -1,7 +1,7 @@
 torchvision
 torchaudio
 datasets
-pyarrow<18
+pyarrow
 soundfile
 wget
 torch_audiomentations
