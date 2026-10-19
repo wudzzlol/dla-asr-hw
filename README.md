@@ -1,79 +1,69 @@
-# Automatic Speech Recognition (ASR) with PyTorch
+# ASR with DeepSpeech2 + CTC (HW1, DLA)
 
-<p align="center">
-  <a href="#about">About</a> •
-  <a href="#installation">Installation</a> •
-  <a href="#how-to-use">How To Use</a> •
-  <a href="#credits">Credits</a> •
-  <a href="#license">License</a>
-</p>
+DeepSpeech2-like model (2 Conv2d + 4 BiGRU, 128 log-mel) trained with CTC on LibriSpeech (train-clean-100/360 + train-other-500).
+Decoding: argmax, own CTC prefix beam search, and beam search with LibriSpeech 3-gram LM (shallow fusion via `pyctcdecode`)
 
-## About
+## Results (char model, beam 50 + 3-gram LM, $\alpha=0.8$, $\beta=3.0$)
 
-This repository contains a template for solving ASR task with PyTorch. This template branch is a part of the [HSE DLA course](https://github.com/markovka17/dla) ASR homework. Some parts of the code are missing (or do not follow the most optimal design choices...) and students are required to fill these parts themselves (as well as writing their own models, etc.).
+| Split | Argmax WER | Beam WER | Beam + LM WER |
+|---|---|---|---|
+| test-clean | 17.02 | 16.44 | **9.50** |
+| test-other | 36.74 | 36.03 | **24.26** |
 
-See the task assignment [here](https://github.com/markovka17/dla/tree/2024/hw1_asr).
+$\alpha$ and $\beta$ were tuned on dev-other only. Full report with training curves and ablations: [REPORT.md](REPORT.md)
 
 ## Installation
 
-Follow these steps to install the project:
-
-0. (Optional) Create and activate new environment using [`conda`](https://conda.io/projects/conda/en/latest/user-guide/getting-started.html) or `venv` ([`+pyenv`](https://github.com/pyenv/pyenv)).
-
-   a. `conda` version:
-
-   ```bash
-   # create env
-   conda create -n project_env python=PYTHON_VERSION
-
-   # activate env
-   conda activate project_env
-   ```
-
-   b. `venv` (`+pyenv`) version:
-
-   ```bash
-   # create env
-   ~/.pyenv/versions/PYTHON_VERSION/bin/python3 -m venv project_env
-
-   # alternatively, using default python version
-   python3 -m venv project_env
-
-   # activate env
-   source project_env/bin/activate
-   ```
-
-1. Install all required packages
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. Install `pre-commit`:
-   ```bash
-   pre-commit install
-   ```
-
-## How To Use
-
-To train a model, run the following command:
-
 ```bash
-python3 train.py -cn=CONFIG_NAME HYDRA_CONFIG_ARGUMENTS
+pip install -r requirements.txt
+# pyctcdecode pins numpy<2, install without deps
+pip install --no-deps pyctcdecode pygtrie
+# kenlm: regenerate cython wrapper (needed on recent Python)
+pip install "cython>=3"
+git clone https://github.com/kpu/kenlm /tmp/kenlm
+cd /tmp/kenlm && cython --cplus -3 python/kenlm.pyx -o python/kenlm.cpp && pip install . && cd -
 ```
 
-Where `CONFIG_NAME` is a config from `src/configs` and `HYDRA_CONFIG_ARGUMENTS` are optional arguments.
-
-To run inference (evaluate the model or save predictions):
+Download the final model weights and the language model:
 
 ```bash
-python3 inference.py HYDRA_CONFIG_ARGUMENTS
+python scripts/download_weights.py   # -> saved/ds2_full/model_best.pth
+python scripts/download_lm.py        # -> data/lm/lm.arpa, data/lm/librispeech-vocab.txt
 ```
 
-## Credits
+## Demo
 
-This repository is based on a [PyTorch Project Template](https://github.com/Blinorot/pytorch_project_template).
+`demo.ipynb` runs the full pipeline in Google Colab on any dataset given by a Google Drive link (folder or .zip with `audio/` and optional `transcriptions/`). With an empty link it runs on 9 bundled LibriSpeech utterances from `data/test_custom_dir`
 
-## License
+## Inference
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](/LICENSE)
+On a custom directory:
+
+```bash
+python inference.py datasets=custom_dir \
+    datasets.test.audio_dir=<path>/audio \
+    datasets.test.transcription_dir=<path>/transcriptions \
+    metrics=lm \
+    text_encoder.lm_model_path=data/lm/lm.arpa \
+    text_encoder.vocab_path=data/lm/librispeech-vocab.txt \
+    text_encoder.alpha=0.8 text_encoder.beta=3.0 \
+    inferencer.decode_method=lm inferencer.beam_size=50 \
+    inferencer.save_path=<save_dir>
+```
+
+`inferencer.decode_method` can be `argmax`, `beam` or `lm`.
+Predictions are saved as `<utterance_id>.txt`.
+
+Metrics between two folders of transcriptions:
+
+```bash
+python calc_metrics.py --gt_dir <path>/transcriptions --pred_dir <predictions_dir>
+```
+
+## Training
+
+```bash
+python train.py -cn=ds2_train          # char model (final)
+python -m scripts.train_bpe            # train sentencepiece BPE (vocab 256)
+python train.py -cn=ds2_train_bpe      # BPE model (ablation)
+```
