@@ -1,4 +1,4 @@
-# HW1 ASR — DeepSpeech2 + CTC
+# HW1 ASR - DeepSpeech2 + CTC
 
 Код и инструкция по запуску: https://github.com/wudzzlol/dla-asr-hw (README, demo.ipynb).
 
@@ -10,7 +10,7 @@
 - Аугментации (только на train):
   - на аудио: Gain $\pm$ 6 dB (p=0.5), цветной шум с SNR 15-30 dB (p=0.4), speed perturbation с коэффициентами 0.9 / 1.0 / 1.1
   - на спектрограмме: SpecAugment - frequency masking (F=20) и time masking (T=40)
-- Оптимизация: AdamW, OneCycleLR (max_lr 1e-3, warmup 10% шагов, косинусное затухание), grad clipping 10, 65 эпох × 1000 шагов, batch 32, AMP, 2×T4 (Kaggle), ~9.5 часов
+- Оптимизация: AdamW, OneCycleLR (max_lr 1e-3, warmup 10% шагов, косинусное затухание), grad clipping 10, 65 эпох x 1000 шагов, batch 32, AMP, 2xT4, ~9.5 часов
 - Лучший чекпоинт выбирался по WER (argmax) на валидации
 
 ![train loss](report_imgs/train_loss.jpg)
