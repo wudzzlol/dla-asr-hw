@@ -3,8 +3,8 @@ import gzip
 import urllib.request
 from pathlib import Path
 
-LM_URL = "https://us.openslr.org/resources/11/3-gram.arpa.gz"
-VOCAB_URL = "https://us.openslr.org/resources/11/librispeech-vocab.txt"
+LM_URL = "https://www.openslr.org/resources/11/3-gram.arpa.gz"
+VOCAB_URL = "https://www.openslr.org/resources/11/librispeech-vocab.txt"
 
 
 def progress(block, block_size, total):
