@@ -1,7 +1,6 @@
 torchvision
 torchaudio
 datasets
-pyarrow
 soundfile
 wget
 torch_audiomentations
@@ -10,7 +9,6 @@ matplotlib
 pandas<3
 comet_ml
 hydra-core
-scipy
 sentencepiece
 editdistance
 gdown
@@ -18,3 +16,7 @@ gdown
 black
 isort
 pre-commit
+
+# also required, installed separately (see README "Installation"):
+# pyctcdecode (pip install --no-deps pyctcdecode pygtrie)
+# kenlm (build from source with regenerated cython wrapper)
