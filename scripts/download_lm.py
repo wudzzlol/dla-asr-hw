@@ -4,7 +4,7 @@ import shutil
 import urllib.request
 from pathlib import Path
 
-LM_URL = "https://www.openslr.org/resources/11/3-gram.pruned.1e-7.arpa.gz"
+LM_URL = "https://www.openslr.org/resources/11/3-gram.arpa.gz"
 VOCAB_URL = "https://www.openslr.org/resources/11/librispeech-vocab.txt"
 
 parser = argparse.ArgumentParser()
@@ -13,14 +13,13 @@ args = parser.parse_args()
 
 out_dir = Path(args.out_dir)
 out_dir.mkdir(parents=True, exist_ok=True)
-gz_path = out_dir / "3-gram.pruned.1e-7.arpa.gz"
+gz_path = out_dir / "3-gram.arpa.gz"
 lm_path = out_dir / "lm.arpa"
 vocab_path = out_dir / "librispeech-vocab.txt"
 
 if not lm_path.exists():
     print("Downloading LM...")
     urllib.request.urlretrieve(LM_URL, gz_path)
-    # the original LM is uppercase, our vocabulary is lowercase
     with gzip.open(gz_path, "rt", encoding="utf-8") as fin, open(
         lm_path, "w", encoding="utf-8"
     ) as fout:
