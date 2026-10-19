@@ -13,10 +13,16 @@
 - Оптимизация: AdamW, OneCycleLR (max_lr 1e-3, warmup 10% шагов, косинусное затухание), grad clipping 10, 65 эпох × 1000 шагов, batch 32, AMP, 2×T4 (Kaggle), ~9.5 часов
 - Лучший чекпоинт выбирался по WER (argmax) на валидации
 
-![train loss](report_imgs/train_loss.png)
-![val WER](report_imgs/val_wer.png)
+![train loss](report_imgs/train_loss.jpg)
 
-   Полные логи обучения: [ds2_full](ССЫЛКА) · [ds2_bpe](ССЫЛКА)
+![val WER](report_imgs/wer_val.jpg)
+
+Полные логи обучения: [ds2_full](https://www.comet.com/143xd/asr-hw/44kmyyzre8s421zyvdhoba7s6kmz7epm?compareXAxis=step&experiment-tab=panels&showOutliers=true&smoothing=0&viewId=new&xAxis=step) · [ds2_bpe](https://www.comet.com/143xd/asr-hw/canlf5m8sqd61dv6sm8h55ry41mg8p0m?compareXAxis=step&experiment-tab=panels&showOutliers=true&smoothing=0&viewId=new&xAxis=step)
+
+Train loss резко падает в первые ~2k шагов, затем медленно снижается до ~0.25. Val WER падает с ~0.97 до ~0.4 за первые 10k шагов и дальше плавно снижается, выходя на плато ~0.17 после ~55k шагов. Переобучения нет - val WER не растет до конца обучения. Плато в конце совпадает с затуханием lr в OneCycle, так что при более длинном обучении, вероятно, можно было бы еще немного улучшить WER
+
+## Как воспроизвести
+Одно обучение с нуля, без дообучения: `python train.py -cn=ds2_train` (65 эпох). Инференс с LM - см. README (полная 3-gram, $\alpha$=0.8, $\beta$=3.0, beam 50)
 
 ## Декодирование
 1. Argmax: CTC decode
